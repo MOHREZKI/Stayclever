@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import { Calendar } from "@/components/ui/calendar";
 import type { GuestRow } from "@/types/app";
+import { cn } from "@/lib/utils";
 
 interface RoomTypeOption {
   id: string;
@@ -37,6 +38,42 @@ interface Room {
   checkOutDate?: string;
 }
 
+type RoomStatus = Room["status"];
+type DisplayStatus = RoomStatus;
+
+const ROOM_STATUS_STYLES: Record<DisplayStatus, { label: string; description: string; badgeClass: string; cardClass: string; dotClass: string }> = {
+  available: {
+    label: "Tersedia",
+    description: "Siap menerima tamu baru",
+    badgeClass: "border border-success/40 bg-success/10 text-success",
+    cardClass: "border-success/40 bg-success/5",
+    dotClass: "bg-success",
+  },
+  occupied: {
+    label: "Terisi",
+    description: "Sedang ditempati tamu",
+    badgeClass: "border border-destructive/40 bg-destructive/10 text-destructive",
+    cardClass: "border-destructive/40 bg-destructive/5",
+    dotClass: "bg-destructive",
+  },
+  cleaning: {
+    label: "Pembersihan",
+    description: "Dalam proses housekeeping",
+    badgeClass: "border border-warning/40 bg-warning/10 text-warning",
+    cardClass: "border-warning/40 bg-warning/5",
+    dotClass: "bg-warning",
+  },
+  reserved: {
+    label: "Reservasi",
+    description: "Dipesan untuk tanggal terpilih",
+    badgeClass: "border border-primary/40 bg-primary/10 text-primary",
+    cardClass: "border-primary/40 bg-primary/5",
+    dotClass: "bg-primary",
+  },
+};
+
+const STATUS_ORDER: DisplayStatus[] = ["available", "reserved", "occupied", "cleaning"];
+
 type ReservationRow = Pick<GuestRow, "id" | "name" | "room_id" | "booking_status" | "payment_status" | "check_in" | "check_out">;
 
 interface ReservationSummary {
@@ -46,6 +83,19 @@ interface ReservationSummary {
   checkIn: string;
   checkOut: string;
 }
+
+const renderStatusBadge = (status: DisplayStatus) => (
+  <Badge
+    variant="outline"
+    className={cn(
+      "flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider",
+      ROOM_STATUS_STYLES[status].badgeClass,
+    )}
+  >
+    <span className={cn("h-2 w-2 rounded-full", ROOM_STATUS_STYLES[status].dotClass)} />
+    {ROOM_STATUS_STYLES[status].label}
+  </Badge>
+);
 
 const Rooms = () => {
   const queryClient = useQueryClient();
@@ -69,7 +119,7 @@ const Rooms = () => {
     enabled: isInitialised,
   });
 
-const { data: roomsData, isLoading: isRoomsLoading, isError: isRoomsError } = useQuery({
+  const { data: roomsData, isLoading: isRoomsLoading, isError: isRoomsError } = useQuery({
     queryKey: ["rooms"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -267,25 +317,23 @@ const { data: roomsData, isLoading: isRoomsLoading, isError: isRoomsError } = us
     }
   };
 
-  const getStatusBadge = (status: Room["status"]) => {
-    const variants = {
-      available: { label: "Tersedia", className: "bg-success text-success-foreground" },
-      occupied: { label: "Terisi", className: "bg-destructive text-destructive-foreground" },
-      cleaning: { label: "Pembersihan", className: "bg-warning text-warning-foreground" },
-      reserved: { label: "Reservasi", className: "bg-primary text-primary-foreground" },
-    };
-    const variant = variants[status];
-    return <Badge className={variant.className}>{variant.label}</Badge>;
-  };
+  const getDisplayStatus = (room: Room): DisplayStatus => {
+    if (room.status === "cleaning") {
+      return "cleaning";
+    }
 
-  const getStatusColor = (status: Room["status"]) => {
-    const colors = {
-      available: "border-success/30 bg-success/5",
-      occupied: "border-destructive/30 bg-destructive/5",
-      cleaning: "border-warning/30 bg-warning/5",
-      reserved: "border-primary/30 bg-primary/5",
-    };
-    return colors[status];
+    if (!selectedDate) {
+      return room.status;
+    }
+
+    const todaysReservations = reservationsByRoom.get(room.id) ?? [];
+
+    if (todaysReservations.length === 0) {
+      return room.status;
+    }
+
+    const hasCheckedInGuest = todaysReservations.some((reservation) => reservation.bookingStatus === "checked-in");
+    return hasCheckedInGuest ? "occupied" : "reserved";
   };
 
   const stats = {
@@ -393,24 +441,39 @@ const { data: roomsData, isLoading: isRoomsLoading, isError: isRoomsError } = us
                 Tambah Kamar
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-xl rounded-3xl">
               <DialogHeader>
                 <DialogTitle>{isEditMode ? "Edit Kamar" : "Tambah Kamar Baru"}</DialogTitle>
                 <DialogDescription>
                   {isEditMode ? "Update detail kamar" : "Masukkan detail kamar hotel"}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddRoom} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="number">Nomor Kamar</Label>
-                  <Input 
-                    id="number" 
-                    name="number" 
-                    required 
-                    placeholder="101"
-                    defaultValue={editingRoom?.number}
-                  />
+              <form onSubmit={handleAddRoom} className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="number">Nomor Kamar</Label>
+                    <Input
+                      id="number"
+                      name="number"
+                      required
+                      placeholder="101"
+                      defaultValue={editingRoom?.number}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Harga per Malam (Rp)</Label>
+                    <Input
+                      id="price"
+                      name="price"
+                      type="number"
+                      min={0}
+                      required
+                      placeholder="500000"
+                      defaultValue={editingRoom?.price}
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="type">Tipe Kamar</Label>
                   <Select name="type" required defaultValue={editingRoom?.typeId}>
@@ -418,35 +481,29 @@ const { data: roomsData, isLoading: isRoomsLoading, isError: isRoomsError } = us
                       <SelectValue placeholder="Pilih tipe kamar" />
                     </SelectTrigger>
                     <SelectContent>
-                    {isRoomTypesLoading ? (
-                      <SelectItem value="-" disabled>
-                        Memuat tipe kamar...
-                      </SelectItem>
-                    ) : (roomTypesData?.length ?? 0) === 0 ? (
-                      <SelectItem value="-" disabled>
-                        Tambahkan tipe kamar terlebih dahulu
-                      </SelectItem>
-                    ) : (
-                      roomTypesData?.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
+                      {isRoomTypesLoading ? (
+                        <SelectItem value="-" disabled>
+                          Memuat tipe kamar...
                         </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Harga per Malam (Rp)</Label>
-                  <Input 
-                    id="price" 
-                    name="price" 
-                    type="number" 
-                    required 
-                    placeholder="500000"
-                    defaultValue={editingRoom?.price}
-                  />
+                      ) : (roomTypesData?.length ?? 0) === 0 ? (
+                        <SelectItem value="-" disabled>
+                          Tambahkan tipe kamar terlebih dahulu
+                        </SelectItem>
+                      ) : (
+                        roomTypesData?.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                <div className="rounded-2xl border border-dashed border-border/60 bg-muted/20 p-4 text-xs text-muted-foreground">
+                  Pastikan nomor kamar unik dan sesuai tipe kamar yang tersedia untuk menjaga data reservasi tetap rapi.
+                </div>
+
                 <Button type="submit" className="w-full bg-gradient-primary">
                   {isEditMode ? "Update Kamar" : "Simpan Kamar"}
                 </Button>
@@ -488,6 +545,24 @@ const { data: roomsData, isLoading: isRoomsLoading, isError: isRoomsError } = us
             </div>
           </div>
         </Card>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        {STATUS_ORDER.map((status) => (
+          <div
+            key={status}
+            className={cn(
+              "flex items-start gap-3 rounded-2xl border bg-card/80 p-4 shadow-sm transition hover:shadow-md",
+              ROOM_STATUS_STYLES[status].cardClass,
+            )}
+          >
+            <span className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", ROOM_STATUS_STYLES[status].dotClass)} />
+            <div>
+              <p className="text-sm font-semibold text-foreground">{ROOM_STATUS_STYLES[status].label}</p>
+              <p className="text-xs text-muted-foreground">{ROOM_STATUS_STYLES[status].description}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       <Card className="p-6 bg-card shadow-sm">
@@ -593,130 +668,167 @@ const { data: roomsData, isLoading: isRoomsLoading, isError: isRoomsError } = us
       )}
 
       {!isRoomsLoading && !isRoomsError && rooms.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rooms.map((room) => (
-            <Card key={room.id} className={`p-6 shadow-sm hover:shadow-md transition-all border-2 ${getStatusColor(room.status)}`}>
-              <div className="space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-foreground">Kamar {room.number}</h3>
-                  <p className="text-sm text-muted-foreground">{room.typeName}</p>
-                </div>
-                {getStatusBadge(room.status)}
-              </div>
-              
-              {room.reservationDate && room.status === "reserved" && (
-                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                  <p className="text-xs text-muted-foreground">Tanggal Reservasi</p>
-                  <p className="text-sm font-semibold text-primary">
-                    {new Date(room.reservationDate).toLocaleDateString('id-ID')}
-                  </p>
-                </div>
-              )}
-              
-              {room.checkOutDate && room.status === "occupied" && (
-                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                  <p className="text-xs text-muted-foreground">Check Out</p>
-                  <p className="text-sm font-semibold text-destructive">
-                    {new Date(room.checkOutDate).toLocaleDateString('id-ID')}
-                  </p>
-                </div>
-              )}
-              
-              <div className="pt-4 border-t border-border">
-                <p className="text-2xl font-bold text-primary">
-                  Rp {room.price.toLocaleString('id-ID')}
-                  <span className="text-sm text-muted-foreground font-normal">/malam</span>
-                </p>
-              </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {rooms.map((room) => {
+            const displayStatus = getDisplayStatus(room);
+            const statusStyle = ROOM_STATUS_STYLES[displayStatus];
+            const todaysReservations = selectedDate
+              ? [...(reservationsByRoom.get(room.id) ?? [])].sort(
+                  (a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime(),
+                )
+              : [];
+            const primaryReservation = todaysReservations[0];
+            const statusChanged = displayStatus !== room.status;
 
-              {selectedDate && !isReservationsLoading && (
-                <div className="rounded-xl border border-border/50 bg-muted/10 p-3 space-y-2">
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground/70">
-                    Status {selectedDate.toLocaleDateString("id-ID")}
-                  </p>
-                  {(() => {
-                    const todaysReservations = reservationsByRoom.get(room.id) ?? [];
-                    if (todaysReservations.length === 0) {
-                      return <p className="text-sm text-muted-foreground">Tidak ada reservasi pada tanggal ini.</p>;
-                    }
-                    return todaysReservations.map((reserve) => (
-                      <div key={`${reserve.guestName}-${reserve.checkIn}`} className="flex items-center justify-between text-sm">
-                        <div className="text-foreground">
-                          <p className="font-medium">{reserve.guestName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(reserve.checkIn).toLocaleDateString("id-ID")}
-                            {" "}–{" "}
-                            {new Date(reserve.checkOut).toLocaleDateString("id-ID")}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Badge
-                            className={
-                              reserve.bookingStatus === "checked-in"
-                                ? "bg-success text-success-foreground"
-                                : "bg-primary text-primary-foreground"
-                            }
-                          >
-                            {reserve.bookingStatus === "checked-in" ? "Check-in" : "Reservasi"}
-                          </Badge>
-                          <Badge
-                            className={
-                              reserve.paymentStatus === "paid"
-                                ? "bg-success text-success-foreground"
-                                : "bg-warning text-warning-foreground"
-                            }
-                          >
-                            {reserve.paymentStatus === "paid" ? "Lunas" : "Belum Lunas"}
-                          </Badge>
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              )}
+            return (
+              <Card
+                key={room.id}
+                className={cn(
+                  "flex h-full flex-col gap-5 rounded-3xl border-2 p-6 transition-all hover:-translate-y-1 hover:shadow-lg",
+                  statusStyle.cardClass,
+                )}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground">Kamar {room.number}</h3>
+                      <p className="text-sm text-muted-foreground">{room.typeName}</p>
+                    </div>
+                    {renderStatusBadge(displayStatus)}
+                  </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Update Status</Label>
-                <Select 
-                  value={room.status} 
-                  onValueChange={(value) => updateRoomStatus(room.id, value as Room["status"])}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Tersedia</SelectItem>
-                    <SelectItem value="occupied">Terisi</SelectItem>
-                    <SelectItem value="reserved">Reservasi</SelectItem>
-                    <SelectItem value="cleaning">Pembersihan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex gap-2 pt-2">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="flex-1 gap-1"
-                  onClick={() => handleEditRoom(room)}
-                >
-                  <Edit className="h-3 w-3" />
-                  Edit
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="flex-1 gap-1 text-destructive hover:text-destructive"
-                  onClick={() => handleDeleteRoom(room.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                  Hapus
-                </Button>
-              </div>
-            </div>
-            </Card>
-          ))}
+                  {statusChanged && (
+                    <p className="text-xs text-muted-foreground">
+                      Status manual saat ini: {" "}
+                      <span className="font-medium text-foreground">
+                        {ROOM_STATUS_STYLES[room.status].label}
+                      </span>
+                    </p>
+                  )}
+
+                  {displayStatus === "reserved" && primaryReservation && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+                      <p className="text-xs uppercase tracking-wider text-primary">Reservasi terjadwal</p>
+                      <p className="mt-2 font-semibold text-foreground">{primaryReservation.guestName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(primaryReservation.checkIn).toLocaleDateString("id-ID")} –{" "}
+                        {new Date(primaryReservation.checkOut).toLocaleDateString("id-ID")}
+                      </p>
+                    </div>
+                  )}
+
+                  {displayStatus === "occupied" && primaryReservation && (
+                    <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm">
+                      <p className="text-xs uppercase tracking-wider text-destructive">Sedang ditempati</p>
+                      <p className="mt-2 font-semibold text-foreground">{primaryReservation.guestName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Check-out {new Date(primaryReservation.checkOut).toLocaleDateString("id-ID")}
+                      </p>
+                    </div>
+                  )}
+
+                  {displayStatus === "cleaning" && (
+                    <div className="rounded-xl border border-warning/30 bg-warning/10 p-4 text-xs text-warning">
+                      Jadwalkan kembali untuk menerima tamu setelah proses housekeeping selesai.
+                    </div>
+                  )}
+
+                  <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">Tarif Kamar</p>
+                    <p className="text-2xl font-bold text-primary">
+                      Rp {room.price.toLocaleString("id-ID")}
+                      <span className="text-sm font-normal text-muted-foreground">/malam</span>
+                    </p>
+                  </div>
+                </div>
+
+                {selectedDate && !isReservationsLoading && (
+                  <div className="space-y-3 rounded-2xl border border-border/50 bg-muted/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground/70">
+                      Status {selectedDate.toLocaleDateString("id-ID")}
+                    </p>
+                    {todaysReservations.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Tidak ada reservasi pada tanggal ini.</p>
+                    ) : (
+                      todaysReservations.map((reserve) => (
+                        <div
+                          key={`${reserve.guestName}-${reserve.checkIn}`}
+                          className="flex items-center justify-between gap-3 rounded-xl bg-background/80 p-3 text-sm shadow-sm"
+                        >
+                          <div>
+                            <p className="font-medium text-foreground">{reserve.guestName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(reserve.checkIn).toLocaleDateString("id-ID")} –{" "}
+                              {new Date(reserve.checkOut).toLocaleDateString("id-ID")}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2 text-xs">
+                            <Badge
+                              className={
+                                reserve.bookingStatus === "checked-in"
+                                  ? "bg-success text-success-foreground"
+                                  : "bg-primary text-primary-foreground"
+                              }
+                            >
+                              {reserve.bookingStatus === "checked-in" ? "Check-in" : "Reservasi"}
+                            </Badge>
+                            <Badge
+                              className={
+                                reserve.paymentStatus === "paid"
+                                  ? "bg-success text-success-foreground"
+                                  : "bg-warning text-warning-foreground"
+                              }
+                            >
+                              {reserve.paymentStatus === "paid" ? "Lunas" : "Belum Lunas"}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-2 border-t border-dashed border-border/60 pt-4">
+                  <Label className="text-xs text-muted-foreground">Update Status Manual</Label>
+                  <Select
+                    value={room.status}
+                    onValueChange={(value) => updateRoomStatus(room.id, value as RoomStatus)}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Tersedia</SelectItem>
+                      <SelectItem value="occupied">Terisi</SelectItem>
+                      <SelectItem value="reserved">Reservasi</SelectItem>
+                      <SelectItem value="cleaning">Pembersihan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {statusChanged && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Warna kartu mengikuti status berdasarkan kalender agar tetap konsisten.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => handleEditRoom(room)}>
+                    <Edit className="h-3 w-3" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 gap-1 text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteRoom(room.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Hapus
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

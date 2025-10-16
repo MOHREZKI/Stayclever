@@ -10,7 +10,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __supabaseClient: ReturnType<typeof createClient> | undefined;
 }
 

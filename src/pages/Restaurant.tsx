@@ -40,7 +40,7 @@ const Restaurant = () => {
     },
   });
 
-  const menuItems = menuQuery.data ?? [];
+  const menuItems = useMemo(() => menuQuery.data ?? [], [menuQuery.data]);
 
   const breakfastItems = useMemo(
     () => menuItems.filter((item) => item.category === "breakfast"),

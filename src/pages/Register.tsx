@@ -6,12 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import type { Role } from "@/types/app";
 import { toast } from "sonner";
 
 const Register = () => {
   const { register, currentUser, isInitialised } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string;
+    email: string;
+    role: Role;
+    password: string;
+    confirmPassword: string;
+  }>({
     name: "",
     email: "",
     role: "staff",
@@ -43,7 +50,7 @@ const Register = () => {
         name: form.name,
         email: form.email,
         password: form.password,
-        role: form.role as any,
+        role: form.role,
       });
       toast.success("Pendaftaran berhasil.");
       navigate("/", { replace: true });
