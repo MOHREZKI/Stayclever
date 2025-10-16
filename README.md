@@ -36,6 +36,84 @@ npm i
 npm run dev
 ```
 
+## Menjalankan langsung di terminal Lovable
+
+Jika Anda bekerja dari terminal bawaan Lovable (seperti pada sesi ini), Anda tetap bisa menjalankan aplikasi dan memeriksa UI
+secara penuh:
+
+1. Pastikan dependensi sudah terpasang dengan `npm install` (cukup sekali setelah workspace dibuat).
+2. Jalankan server pengembangan dengan `npm run dev -- --host` agar Vite menerima koneksi dari pratinjau Lovable.
+3. Setelah perintah berjalan, klik tombol "Preview" di Lovable dan pilih port yang ditampilkan oleh Vite (biasanya 5173) untuk
+   membuka aplikasi di browser embedded.
+4. Gunakan kombinasi `Ctrl+C` di terminal untuk menghentikan server saat selesai.
+
+Untuk pengecekan otomatis, Anda juga bisa menjalankan `npm run lint` dan `npm run build` langsung dari terminal yang sama.
+
+## Mengunduh proyek yang sudah diperbarui
+
+Ada dua cara yang bisa Anda gunakan untuk membawa perubahan di workspace ini ke mesin lokal Anda:
+
+### 1. Push ke repositori GitHub pribadi
+
+1. Buat repositori kosong di GitHub.
+2. Salin URL HTTPS/SSH repositori tersebut.
+3. Dari terminal Lovable, tambahkan remote baru dan dorong cabang `work` yang berisi perubahan. Anda bisa menjalankan perintah Git
+   secara manual atau memanfaatkan skrip bantu yang sudah disiapkan di folder `scripts/`.
+
+   **Opsi A — Perintah Git manual**
+
+   ```sh
+   git remote add origin <URL_REPOSITORI_GITHUB_ANDA>
+   git push -u origin work
+   ```
+
+   **Opsi B — Skrip commit + push sekaligus**
+
+   ```sh
+   ./scripts/commit-and-push.sh "<pesan commit>" <URL_REPOSITORI_GITHUB_ANDA>
+   ```
+
+   Skrip ini akan:
+
+   - men-stage seluruh perubahan,
+   - membuat commit baru dengan pesan yang Anda berikan,
+   - menambahkan remote `origin` bila belum ada,
+   - dan langsung menjalankan `git push -u origin <branch-aktif>`.
+
+   Anda bisa menambahkan argumen opsional untuk memilih cabang atau nama remote lain:
+
+   ```sh
+   ./scripts/commit-and-push.sh "<pesan commit>" "" main upstream
+   ```
+
+   **Opsi C — Skrip push-only**
+
+   ```sh
+   ./scripts/push-to-github.sh <URL_REPOSITORI_GITHUB_ANDA>
+   ```
+
+   Skrip ini cocok bila Anda sudah membuat commit sebelumnya dan hanya ingin menjalankan push. Ia akan:
+
+   - memastikan Anda berada di dalam repositori Git,
+   - menolak push jika masih ada perubahan belum di-commit,
+   - membuat remote `origin` apabila belum ada,
+   - menjalankan `git push -u origin <branch-aktif>`.
+
+   > Gunakan `./scripts/push-to-github.sh "" <nama-branch> <nama-remote>` bila Anda ingin mendorong cabang selain yang sedang
+   > aktif atau remote-nya bukan `origin` (biarkan argumen URL kosong bila remote sudah dikonfigurasi sebelumnya).
+
+4. Setelah berhasil, clone repositori dari komputer Anda seperti biasa (`git clone <URL_REPOSITORI_GITHUB_ANDA>`).
+
+### 2. Mengunduh arsip ZIP langsung dari workspace
+
+Jika Anda tidak ingin menyiapkan remote Git, Anda bisa membuat arsip ZIP dari commit terbaru dan mengunduhnya lewat antarmuka Lovable:
+
+1. Jalankan `git archive --format zip HEAD -o stayclever.zip` untuk membuat file ZIP dari isi proyek saat ini.
+2. Gunakan panel "Files" di Lovable untuk mengunduh `stayclever.zip` ke komputer Anda.
+3. Ekstrak file ZIP tersebut di mesin lokal dan lanjutkan pengembangan seperti biasa.
+
+Kedua metode di atas memastikan semua perubahan yang sudah dilakukan di cabang `work` dapat Anda simpan dan gunakan di luar lingkungan Lovable.
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).

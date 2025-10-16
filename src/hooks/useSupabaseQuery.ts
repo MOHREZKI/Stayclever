@@ -1,27 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 
 // Hook untuk mengambil data dengan caching otomatis
-export function useSupabaseQuery<T = any>(
+type QueryFilters = Record<string, string | number | boolean | null | undefined>;
+
+interface SupabaseQueryOptions {
+  enabled?: boolean;
+  staleTime?: number;
+  cacheTime?: number;
+}
+
+export function useSupabaseQuery<TData = unknown, TFilters extends QueryFilters = QueryFilters>(
   table: string,
   select: string = "*",
-  filters?: Record<string, any>,
-  options?: {
-    enabled?: boolean;
-    staleTime?: number;
-    cacheTime?: number;
-  }
+  filters?: TFilters,
+  options?: SupabaseQueryOptions,
 ) {
-  return useQuery<T>({
+  return useQuery<TData>({
     queryKey: [table, select, filters],
     queryFn: async () => {
       let query = supabase.from(table).select(select);
 
       if (filters) {
-        Object.entries(filters).forEach(([key, value]) => {
+        (Object.entries(filters) as Array<[keyof TFilters, TFilters[keyof TFilters]]>).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            query = query.eq(key, value);
+            query = query.eq(String(key), value as string | number | boolean);
           }
         });
       }
@@ -32,7 +38,7 @@ export function useSupabaseQuery<T = any>(
         throw new Error(`Error fetching ${table}: ${error.message}`);
       }
 
-      return data as T;
+      return data as TData;
     },
     staleTime: options?.staleTime || 5 * 60 * 1000, // 5 menit default
     gcTime: options?.cacheTime || 10 * 60 * 1000, // 10 menit default
@@ -41,10 +47,10 @@ export function useSupabaseQuery<T = any>(
 }
 
 // Hook untuk real-time subscriptions
-export function useSupabaseSubscription<T>(
+export function useSupabaseSubscription<TData>(
   table: string,
-  callback: (payload: any) => void,
-  filter?: string
+  callback: (payload: RealtimePostgresChangesPayload<TData>) => void,
+  filter?: string,
 ) {
   const { currentUser } = useAuth();
 
@@ -77,22 +83,22 @@ export function useSupabaseSubscription<T>(
 }
 
 // Hook untuk mutations dengan optimasi
-export function useSupabaseMutation<T, V = any>(
-  mutationFn: (variables: V) => Promise<T>,
+export function useSupabaseMutation<TData, TVariables = void>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
   options?: {
-    onSuccess?: (data: T, variables: V) => void;
-    onError?: (error: Error, variables: V) => void;
+    onSuccess?: (data: TData, variables: TVariables) => void;
+    onError?: (error: Error, variables: TVariables) => void;
     invalidateQueries?: string[];
-  }
+  },
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<T, Error, V>({
+  return useMutation<TData, Error, TVariables>({
     mutationFn,
     onSuccess: (data, variables) => {
       // Invalidate dan refetch queries yang terkait
       if (options?.invalidateQueries) {
-        options.invalidateQueries.forEach(queryKey => {
+        options.invalidateQueries.forEach((queryKey) => {
           queryClient.invalidateQueries({ queryKey: [queryKey] });
         });
       }

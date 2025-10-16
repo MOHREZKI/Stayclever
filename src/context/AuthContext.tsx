@@ -40,7 +40,6 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 declare global {
-  // eslint-disable-next-line no-var
   var __supabaseAdminClient: ReturnType<typeof createClient> | undefined;
 }
 
