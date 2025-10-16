@@ -447,10 +447,10 @@ const Guests = () => {
           </DialogTrigger>
 
           <DialogContent
-            className="w-[95vw] max-w-3xl max-h-[95vh] overflow-y-auto p-0 rounded-2xl shadow-xl"
+            className="w-[95vw] max-w-3xl max-h-[95vh] overflow-hidden p-0 rounded-2xl shadow-xl"
             style={{ top: "5vh", transform: "translate(-50%, 0)" }}
           >
-            <div className="flex flex-col min-h-full">
+            <div className="flex h-full min-h-[60vh] flex-col">
               <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-primary/10 via-background to-background">
                 <DialogTitle className="text-xl font-semibold text-foreground">Tambah Tamu Baru</DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
@@ -461,7 +461,7 @@ const Guests = () => {
               <form
                 id="guest-form"
                 onSubmit={handleAddGuest}
-                className="flex-1 overflow-y-auto px-6 py-6 pb-32 space-y-6 sm:pb-6"
+                className="flex-1 overflow-y-auto px-6 py-6 pb-40 space-y-6 sm:pb-10"
               >
                 <section className="rounded-2xl border border-border/50 bg-card/40 p-5 shadow-sm space-y-4">
                   <header>
@@ -643,11 +643,11 @@ const Guests = () => {
                 )}
               </form>
 
-              <div className="sticky bottom-0 border-t border-border/60 bg-card/80 backdrop-blur-md px-6 py-4 sm:py-5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              <div className="sticky bottom-0 border-t border-border/60 bg-card/90 backdrop-blur-md px-6 py-4 sm:py-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                 <Button
                   type="submit"
                   form="guest-form"
-                  className="w-full rounded-2xl bg-gradient-to-r from-primary to-primary/80 py-4 text-base font-semibold text-white sm:py-5 sm:text-lg"
+                  className="w-full rounded-2xl bg-gradient-to-r from-primary to-primary/80 py-4 text-base font-semibold text-white sm:py-5 sm:text-lg shadow-lg"
                   disabled={addGuestMutation.isPending}
                 >
                   {addGuestMutation.isPending ? "Menyimpan..." : "Simpan Data Tamu"}
