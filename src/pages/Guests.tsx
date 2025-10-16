@@ -458,7 +458,11 @@ const Guests = () => {
                 </DialogDescription>
               </DialogHeader>
 
-              <form id="guest-form" onSubmit={handleAddGuest} className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              <form
+                id="guest-form"
+                onSubmit={handleAddGuest}
+                className="flex-1 overflow-y-auto px-6 py-6 pb-32 space-y-6 sm:pb-6"
+              >
                 <section className="rounded-2xl border border-border/50 bg-card/40 p-5 shadow-sm space-y-4">
                   <header>
                     <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground/70">Data Tamu</p>
@@ -639,11 +643,11 @@ const Guests = () => {
                 )}
               </form>
 
-              <div className="sticky bottom-0 border-t bg-card/60 backdrop-blur-md px-6 py-5">
+              <div className="sticky bottom-0 border-t border-border/60 bg-card/80 backdrop-blur-md px-6 py-4 sm:py-5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 <Button
                   type="submit"
                   form="guest-form"
-                  className="w-full rounded-2xl bg-gradient-to-r from-primary to-primary/70 py-5 text-lg font-semibold text-white"
+                  className="w-full rounded-2xl bg-gradient-to-r from-primary to-primary/80 py-4 text-base font-semibold text-white sm:py-5 sm:text-lg"
                   disabled={addGuestMutation.isPending}
                 >
                   {addGuestMutation.isPending ? "Menyimpan..." : "Simpan Data Tamu"}
