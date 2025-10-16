@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import { Calendar } from "@/components/ui/calendar";
 import type { GuestRow } from "@/types/app";
+import { ROOM_STATUS_ORDER, ROOM_STATUS_TOKENS, getRoomStatusToken } from "@/constants/room-status";
 
 interface RoomTypeOption {
   id: string;
@@ -350,107 +351,211 @@ const { data: roomsData, isLoading: isRoomsLoading, isError: isRoomsError } = us
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-1">
           <h1 className="text-3xl font-bold text-foreground">Manajemen Kamar</h1>
-          <p className="text-muted-foreground mt-1">Kelola kamar hotel dan ketersediaan</p>
+          <p className="text-muted-foreground">Kelola kamar hotel dan ketersediaan</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Dialog open={isTypeDialogOpen} onOpenChange={setIsTypeDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2 w-full sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Tambah Tipe Kamar
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Tambah Tipe Kamar</DialogTitle>
-                <DialogDescription>Buat tipe kamar baru</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddRoomType} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="typeName">Nama Tipe Kamar</Label>
-                  <Input id="typeName" name="typeName" required placeholder="Contoh: Executive, Presidential" />
+            <DialogContent
+              className="w-[90vw] max-w-md h-[70vh] overflow-hidden rounded-2xl p-0 shadow-xl"
+              style={{ top: "10vh", transform: "translate(-50%, 0)" }}
+            >
+              <div className="flex h-full flex-col">
+                <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-primary/10 via-background to-background px-6 py-4">
+                  <DialogTitle>Tambah Tipe Kamar</DialogTitle>
+                  <DialogDescription>
+                    Buat tipe kamar baru untuk mengelompokkan fasilitas dan tarif kamar.
+                  </DialogDescription>
+                </DialogHeader>
+                <form
+                  id="room-type-form"
+                  onSubmit={handleAddRoomType}
+                  className="flex-1 overflow-y-auto px-6 py-6 space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="typeName">Nama Tipe Kamar</Label>
+                    <Input id="typeName" name="typeName" required placeholder="Contoh: Executive, Presidential" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Tipe kamar membantu menyatukan kamar dengan fasilitas sejenis sehingga harga dan laporan lebih
+                    konsisten.
+                  </p>
+                </form>
+                <div className="sticky bottom-0 shrink-0 border-t border-border/60 bg-card/90 px-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-md sm:pt-5">
+                  <Button
+                    type="submit"
+                    form="room-type-form"
+                    className="w-full rounded-2xl bg-gradient-primary py-4 text-base font-semibold text-white shadow-lg sm:py-5 sm:text-lg"
+                  >
+                    Simpan Tipe
+                  </Button>
                 </div>
-                <Button type="submit" className="w-full bg-gradient-primary">
-                  Simpan Tipe
-                </Button>
-              </form>
+              </div>
             </DialogContent>
           </Dialog>
-          
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) {
-              setIsEditMode(false);
-              setEditingRoom(null);
-            }
-          }}>
+
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) {
+                setIsEditMode(false);
+                setEditingRoom(null);
+              }
+            }}
+          >
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-gradient-primary shadow-md hover:shadow-lg">
+              <Button className="w-full gap-2 bg-gradient-primary shadow-md hover:shadow-lg sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Tambah Kamar
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{isEditMode ? "Edit Kamar" : "Tambah Kamar Baru"}</DialogTitle>
-                <DialogDescription>
-                  {isEditMode ? "Update detail kamar" : "Masukkan detail kamar hotel"}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddRoom} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="number">Nomor Kamar</Label>
-                  <Input 
-                    id="number" 
-                    name="number" 
-                    required 
-                    placeholder="101"
-                    defaultValue={editingRoom?.number}
-                  />
+            <DialogContent
+              className="w-[95vw] max-w-3xl h-[90vh] overflow-hidden rounded-2xl p-0 shadow-xl"
+              style={{ top: "5vh", transform: "translate(-50%, 0)" }}
+            >
+              <div className="flex h-full min-h-[60vh] flex-col">
+                <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-primary/10 via-background to-background px-6 py-4">
+                  <DialogTitle>{isEditMode ? "Edit Kamar" : "Tambah Kamar Baru"}</DialogTitle>
+                  <DialogDescription>
+                    {isEditMode ? "Perbarui detail kamar yang sudah ada." : "Lengkapi informasi kamar untuk inventaris hotel."}
+                  </DialogDescription>
+                </DialogHeader>
+                <form
+                  id="room-form"
+                  onSubmit={handleAddRoom}
+                  className="grid flex-1 overflow-y-auto gap-6 px-6 py-6 pb-40 sm:pb-10 md:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]"
+                >
+                  <div className="space-y-5">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="number">Nomor Kamar</Label>
+                        <Input
+                          id="number"
+                          name="number"
+                          required
+                          placeholder="101"
+                          defaultValue={editingRoom?.number}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Gunakan format konsisten (mis. 201, 202) agar mudah diingat tim operasional.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="type">Tipe Kamar</Label>
+                        <Select name="type" required defaultValue={editingRoom?.typeId}>
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="Pilih tipe kamar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {isRoomTypesLoading ? (
+                              <SelectItem value="-" disabled>
+                                Memuat tipe kamar...
+                              </SelectItem>
+                            ) : (roomTypesData?.length ?? 0) === 0 ? (
+                              <SelectItem value="-" disabled>
+                                Tambahkan tipe kamar terlebih dahulu
+                              </SelectItem>
+                            ) : (
+                              roomTypesData?.map((type) => (
+                                <SelectItem key={type.id} value={type.id}>
+                                  {type.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Tipe kamar menentukan fasilitas, kapasitas, dan harga dasar.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Harga per Malam (Rp)</Label>
+                      <Input
+                        id="price"
+                        name="price"
+                        type="number"
+                        required
+                        inputMode="numeric"
+                        placeholder="500000"
+                        defaultValue={editingRoom?.price}
+                        min={0}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Harga akan tampil di kartu kamar dan ringkasan tamu untuk tanggal terpilih.
+                      </p>
+                    </div>
+                    <div className="space-y-3 rounded-xl border border-border/60 bg-muted/10 p-4">
+                      <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground/70">Status Referensi</p>
+                      <p className="text-xs text-muted-foreground/90">
+                        Status kamar dipakai di seluruh halaman untuk legenda warna dan laporan ketersediaan.
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {ROOM_STATUS_ORDER.map((status) => {
+                          const token = ROOM_STATUS_TOKENS[status];
+                          return (
+                            <div
+                              key={`form-status-${status}`}
+                              className={`rounded-lg p-3 text-xs ${token.legendSurfaceClass}`}
+                            >
+                              <p className="font-semibold text-muted-foreground/90">{token.label}</p>
+                              <p className="mt-1 text-[11px] text-muted-foreground/80">{token.description}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <aside className="space-y-4 rounded-2xl border border-border/60 bg-background/70 p-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-foreground">Panduan Pengisian</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isEditMode
+                          ? "Perbarui data kamar tanpa mengubah histori reservasi yang ada."
+                          : "Lengkapi informasi dasar untuk menambah kamar baru ke sistem."}
+                      </p>
+                    </div>
+                    <ul className="space-y-3 text-xs text-muted-foreground/90">
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                        <span>Gunakan penomoran berurutan agar tim resepsionis mudah mengarahkan tamu.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1 h-2 w-2 rounded-full bg-success" />
+                        <span>Tipe kamar terbaik mencerminkan fasilitas dan kapasitas aktual.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1 h-2 w-2 rounded-full bg-warning" />
+                        <span>Sesuaikan harga dengan musim, promo, atau paket sarapan yang aktif.</span>
+                      </li>
+                    </ul>
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-primary">
+                      Tips: Sinkronkan pembaruan kamar dengan tim housekeeping agar status kamar selalu akurat.
+                    </div>
+                    <div className="rounded-xl border border-muted/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+                      Informasi kamar bisa diperbarui kapan saja tanpa mengganggu jadwal reservasi.
+                    </div>
+                  </aside>
+                </form>
+                <div className="sticky bottom-0 shrink-0 border-t border-border/60 bg-card/90 px-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-md sm:pt-5">
+                  <Button
+                    type="submit"
+                    form="room-form"
+                    className="w-full rounded-2xl bg-gradient-primary py-4 text-base font-semibold text-white shadow-lg sm:py-5 sm:text-lg"
+                  >
+                    {isEditMode ? "Update Kamar" : "Simpan Kamar"}
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">Tipe Kamar</Label>
-                  <Select name="type" required defaultValue={editingRoom?.typeId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih tipe kamar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    {isRoomTypesLoading ? (
-                      <SelectItem value="-" disabled>
-                        Memuat tipe kamar...
-                      </SelectItem>
-                    ) : (roomTypesData?.length ?? 0) === 0 ? (
-                      <SelectItem value="-" disabled>
-                        Tambahkan tipe kamar terlebih dahulu
-                      </SelectItem>
-                    ) : (
-                      roomTypesData?.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
               </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Harga per Malam (Rp)</Label>
-                  <Input 
-                    id="price" 
-                    name="price" 
-                    type="number" 
-                    required 
-                    placeholder="500000"
-                    defaultValue={editingRoom?.price}
-                  />
-                </div>
-                <Button type="submit" className="w-full bg-gradient-primary">
-                  {isEditMode ? "Update Kamar" : "Simpan Kamar"}
-                </Button>
-              </form>
             </DialogContent>
           </Dialog>
         </div>

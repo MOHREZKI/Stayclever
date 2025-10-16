@@ -1,30 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
 
-export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+export const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase environment variables are missing. Please define VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
-  );
-}
+// ✅ Client utama (frontend)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storageKey: "stayclever-auth",
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __supabaseClient: ReturnType<typeof createClient> | undefined;
-}
-
-export const supabase =
-  globalThis.__supabaseClient ??
-  createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      storageKey: "stayclever-auth",
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  });
-
-if (!globalThis.__supabaseClient) {
-  globalThis.__supabaseClient = supabase;
-}
+// ✅ Client service role (untuk operasi admin)
+export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});

@@ -90,6 +90,28 @@ const Index = () => {
     enabled: isInitialised,
   });
 
+  const roomsLookupQuery = useQuery({
+    queryKey: ["rooms", "lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("id, number, room_types(name)")
+        .order("number", { ascending: true });
+      if (error) throw error;
+      return (
+        data ?? []
+      ) as Array<{
+        id: string;
+        number: string;
+        room_types: { name: string } | { name: string }[] | null;
+      }>;
+    },
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    enabled: isInitialised,
+  });
+
   const teamActivitiesQuery = useQuery({
     queryKey: ["team-activities"],
     queryFn: async () => {
@@ -117,6 +139,29 @@ const Index = () => {
 
   const recentGuests = recentGuestsQuery.data ?? [];
   const recentTransactions = recentTransactionsQuery.data ?? [];
+  const roomLookup = useMemo(() => {
+    const map = new Map<string, { number: string; typeName?: string | null }>();
+    (roomsLookupQuery.data ?? []).forEach((room) => {
+      const typeName = Array.isArray(room.room_types)
+        ? room.room_types[0]?.name
+        : room.room_types?.name;
+      map.set(room.id, { number: room.number, typeName });
+    });
+    return map;
+  }, [roomsLookupQuery.data]);
+
+  const formatTransactionDescription = (description: string) => {
+    const match = /^Pembayaran kamar ([0-9a-fA-F-]{8,})$/.exec(description);
+    if (match) {
+      const roomInfo = roomLookup.get(match[1]);
+      if (roomInfo) {
+        const typeLabel = roomInfo.typeName ? `${roomInfo.typeName} • ` : "";
+        return `Pembayaran kamar ${typeLabel}Kamar ${roomInfo.number}`;
+      }
+    }
+    return description;
+  };
+
   const incomeSummary = recentTransactions
     .filter((transaction) => transaction.type === "income")
     .reduce((sum, transaction) => sum + transaction.amount, 0);
@@ -331,11 +376,13 @@ const Index = () => {
               {recentTransactions.map((transaction) => (
                 <li
                   key={transaction.id}
-                  className="rounded-2xl border border-muted/40 bg-muted/10 px-4 py-3 text-sm"
+                      className="rounded-2xl border border-muted/40 bg-muted/10 px-4 py-3 text-sm"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium text-foreground">{transaction.description}</p>
+                      <p className="font-medium text-foreground">
+                        {formatTransactionDescription(transaction.description)}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {transaction.category} • {new Date(transaction.date).toLocaleDateString("id-ID")}
                       </p>

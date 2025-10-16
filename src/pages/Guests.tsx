@@ -217,6 +217,8 @@ const Guests = () => {
       paymentMethod: string;
       paymentStatus: PaymentStatus;
       roomId: string;
+      roomNumber: string;
+      roomTypeName: string;
       pricePerNight: number;
       totalPrice: number;
       receivedBy: string | null;
@@ -264,7 +266,7 @@ const Guests = () => {
           type: "income",
           amount: Number(payload.totalPrice),
           category: "Kamar",
-          description: `Pembayaran kamar ${payload.roomId}`,
+          description: `Pembayaran kamar ${payload.roomTypeName} • Kamar ${payload.roomNumber}`,
           date: payload.checkIn,
         });
         if (txError) {
@@ -357,6 +359,8 @@ const Guests = () => {
       paymentMethod: (formData.get("paymentMethod") as string) ?? "",
       paymentStatus: formData.get("paymentStatus") as PaymentStatus,
       roomId: selectedRoom.id,
+      roomNumber: selectedRoom.number,
+      roomTypeName: selectedRoom.typeName,
       pricePerNight: selectedRoom.price,
       totalPrice: calculatedPrice,
       receivedBy: currentUser?.id ?? null,
@@ -447,11 +451,11 @@ const Guests = () => {
           </DialogTrigger>
 
           <DialogContent
-            className="w-[95vw] max-w-3xl max-h-[95vh] overflow-hidden p-0 rounded-2xl shadow-xl"
+            className="w-[95vw] max-w-3xl h-[90vh] overflow-hidden rounded-2xl p-0 shadow-xl"
             style={{ top: "5vh", transform: "translate(-50%, 0)" }}
           >
             <div className="flex h-full min-h-[60vh] flex-col">
-              <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-primary/10 via-background to-background">
+              <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-primary/10 via-background to-background px-6 py-4">
                 <DialogTitle className="text-xl font-semibold text-foreground">Tambah Tamu Baru</DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
                   Isi data tamu, detail reservasi, dan status pembayaran dalam satu tampilan teratur.
@@ -643,11 +647,11 @@ const Guests = () => {
                 )}
               </form>
 
-              <div className="sticky bottom-0 border-t border-border/60 bg-card/90 backdrop-blur-md px-6 py-4 sm:py-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <div className="sticky bottom-0 shrink-0 border-t border-border/60 bg-card/90 px-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-md sm:pt-5">
                 <Button
                   type="submit"
                   form="guest-form"
-                  className="w-full rounded-2xl bg-gradient-to-r from-primary to-primary/80 py-4 text-base font-semibold text-white sm:py-5 sm:text-lg shadow-lg"
+                  className="w-full rounded-2xl bg-gradient-to-r from-primary to-primary/80 py-4 text-base font-semibold text-white shadow-lg sm:py-5 sm:text-lg"
                   disabled={addGuestMutation.isPending}
                 >
                   {addGuestMutation.isPending ? "Menyimpan..." : "Simpan Data Tamu"}
