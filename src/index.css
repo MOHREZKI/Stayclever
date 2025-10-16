@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 225 60% 97%;
+    --foreground: 233 39% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 233 39% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 233 39% 12%;
+
+    --primary: 246 85% 62%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 245 90% 70%;
+
+    --secondary: 217 70% 95%;
+    --secondary-foreground: 235 30% 32%;
+
+    --muted: 220 38% 92%;
+    --muted-foreground: 229 20% 44%;
+
+    --accent: 33 86% 63%;
+    --accent-foreground: 239 36% 12%;
+
+    --success: 158 64% 45%;
+    --success-foreground: 168 100% 96%;
+
+    --warning: 43 96% 58%;
+    --warning-foreground: 32 100% 18%;
+
+    --destructive: 350 84% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 221 58% 87%;
+    --input: 221 58% 87%;
+    --ring: 246 85% 62%;
+
+    --radius: 1rem;
+
+    --sidebar-background: 240 56% 12%;
+    --sidebar-foreground: 223 100% 97%;
+    --sidebar-primary: 246 85% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 244 60% 18%;
+    --sidebar-accent-foreground: 223 100% 97%;
+    --sidebar-border: 244 55% 22%;
+    --sidebar-ring: 33 86% 63%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(246 85% 62%) 0%, hsl(264 83% 62%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(199 88% 80%) 0%, hsl(226 84% 88%) 100%);
+    --gradient-card: linear-gradient(145deg, hsla(0 0% 100% / 0.92) 0%, hsla(225 60% 97% / 0.75) 100%);
+    
+    /* Shadows */
+    --shadow-sm: 0 8px 24px hsla(240 60% 20% / 0.08);
+    --shadow-md: 0 16px 40px hsla(240 60% 20% / 0.12);
+    --shadow-lg: 0 32px 64px hsla(240 60% 20% / 0.16);
+    --shadow-glow: 0 0 48px hsla(246 85% 62% / 0.35);
+
+    /* Animations */
+    --transition-smooth: all 0.35s cubic-bezier(0.33, 1, 0.68, 1);
+  }
+
+  .dark {
+    --background: 233 34% 10%;
+    --foreground: 224 100% 96%;
+
+    --card: 240 33% 14%;
+    --card-foreground: 224 100% 96%;
+
+    --popover: 240 33% 14%;
+    --popover-foreground: 224 100% 96%;
+
+    --primary: 246 85% 65%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 246 85% 72%;
+
+    --secondary: 235 34% 18%;
+    --secondary-foreground: 223 100% 96%;
+
+    --muted: 234 30% 22%;
+    --muted-foreground: 225 30% 72%;
+
+    --accent: 33 86% 63%;
+    --accent-foreground: 243 36% 14%;
+
+    --success: 158 64% 45%;
+    --success-foreground: 164 100% 94%;
+
+    --warning: 43 96% 58%;
+    --warning-foreground: 32 100% 18%;
+
+    --destructive: 350 84% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 232 28% 28%;
+    --input: 232 28% 28%;
+    --ring: 246 85% 65%;
+
+    --sidebar-background: 233 30% 9%;
+    --sidebar-foreground: 224 100% 96%;
+    --sidebar-primary: 246 85% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 246 40% 24%;
+    --sidebar-accent-foreground: 224 100% 96%;
+    --sidebar-border: 240 30% 18%;
+    --sidebar-ring: 33 86% 63%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(246 85% 48%) 0%, hsl(262 79% 55%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsla(188 95% 65% / 0.65) 0%, hsla(234 77% 70% / 0.55) 100%);
+    --gradient-card: linear-gradient(145deg, hsla(240 28% 14% / 0.85) 0%, hsla(233 28% 18% / 0.75) 100%);
+
+    --shadow-sm: 0 12px 28px hsla(244 50% 10% / 0.45);
+    --shadow-md: 0 20px 48px hsla(244 50% 10% / 0.55);
+    --shadow-lg: 0 32px 64px hsla(244 50% 10% / 0.65);
+    --shadow-glow: 0 0 48px hsla(246 85% 65% / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-image:
+      radial-gradient(circle at 2% 15%, hsla(246 85% 62% / 0.18), transparent 55%),
+      radial-gradient(circle at 98% 18%, hsla(199 88% 80% / 0.32), transparent 50%),
+      radial-gradient(circle at 50% 100%, hsla(33 86% 63% / 0.12), transparent 45%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background-color: hsla(var(--primary) / 0.2);
+    color: hsl(var(--primary));
+  }
+
+  /* Performance optimizations */
+  * {
+    /* Optimize repaints */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Optimize animations */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Optimize font rendering */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* GPU acceleration for better performance */
+  .animate-spin {
+    transform: translateZ(0);
+  }
+
+  /* Optimize hover states */
+  button, a {
+    transition: all 0.15s ease-in-out;
+  }
+
+  /* Container queries for better responsive design */
+  .container {
+    container-type: inline-size;
+  }
+}
