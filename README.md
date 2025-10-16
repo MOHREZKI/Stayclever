@@ -57,12 +57,31 @@ Ada dua cara yang bisa Anda gunakan untuk membawa perubahan di workspace ini ke 
 
 1. Buat repositori kosong di GitHub.
 2. Salin URL HTTPS/SSH repositori tersebut.
-3. Dari terminal Lovable, tambahkan remote baru dan dorong cabang `work` yang berisi perubahan:
+3. Dari terminal Lovable, tambahkan remote baru dan dorong cabang `work` yang berisi perubahan. Anda bisa menjalankan perintah Git
+   secara manual atau menggunakan skrip bantu `scripts/push-to-github.sh` yang sudah disiapkan.
+
+   **Opsi A — Perintah Git manual**
 
    ```sh
    git remote add origin <URL_REPOSITORI_GITHUB_ANDA>
    git push -u origin work
    ```
+
+   **Opsi B — Skrip bantu otomatis**
+
+   ```sh
+   ./scripts/push-to-github.sh <URL_REPOSITORI_GITHUB_ANDA>
+   ```
+
+   Skrip tersebut akan:
+
+   - memastikan Anda berada di dalam repositori Git,
+   - menolak push jika masih ada perubahan belum di-commit,
+   - membuat remote `origin` apabila belum ada,
+   - menjalankan `git push -u origin <branch-aktif>`.
+
+   > Gunakan `./scripts/push-to-github.sh "" <nama-branch> <nama-remote>` bila Anda ingin mendorong cabang selain yang sedang
+   > aktif atau remote-nya bukan `origin` (biarkan argumen URL kosong bila remote sudah dikonfigurasi sebelumnya).
 
 4. Setelah berhasil, clone repositori dari komputer Anda seperti biasa (`git clone <URL_REPOSITORI_GITHUB_ANDA>`).
 
